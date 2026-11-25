@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">رسالة</string>
+    <string name="app_tagline">تواصل لحظي، أنيق، وآمن</string>
+    <string name="sign_in_google">المتابعة عبر حساب Google</string>
+    <string name="signing_in">جاري تسجيل الدخول...</string>
+    <string name="tab_chats">المحادثات</string>
+    <string name="tab_stories">الحالات</string>
+    <string name="tab_settings">الإعدادات</string>
+    <string name="search_hint">ابحث في المحادثات أو جهات الاتصال...</string>
+    <string name="typing_now">يكتب الآن...</string>
+    <string name="online_now">متصل الآن</string>
+    <string name="message_hint">اكتب رسالة...</string>
+    <string name="reply_action">رد</string>
+    <string name="copy_action">نسخ</string>
+    <string name="delete_action">حذف</string>
+    <string name="copied_snackbar">تم نسخ النص</string>
+    <string name="deleted_message_placeholder">تم حذف هذه الرسالة</string>
+    <string name="new_chat">محادثة جديدة</string>
+    <string name="new_group">مجموعة جديدة</string>
+    <string name="sign_out">تسجيل الخروج</string>
+</resources>
