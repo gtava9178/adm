@@ -10,6 +10,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -27,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -248,6 +256,15 @@ fun ChatScreen(
         }
     }
 
+    LaunchedEffect(othersTyping.size) {
+        if (othersTyping.isNotEmpty()) {
+            val target = messages.size
+            if (target >= 0) {
+                listState.animateScrollToItem(target)
+            }
+        }
+    }
+
     val isDark = when (themeMode) {
         ThemeMode.DARK -> true
         ThemeMode.LIGHT -> false
@@ -347,7 +364,7 @@ fun ChatScreen(
                             }
                         }
                         is UiState.Success -> {
-                            if (messages.isEmpty()) {
+                            if (messages.isEmpty() && othersTyping.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Surface(
                                         shape = RoundedCornerShape(18.dp),
@@ -393,6 +410,18 @@ fun ChatScreen(
                                                 }
                                             }
                                         )
+                                    }
+
+                                    if (othersTyping.isNotEmpty()) {
+                                        item(key = "in_chat_typing_indicator") {
+                                            ChatTypingBubble(
+                                                typingUsers = othersTyping,
+                                                profileMap = profileMap,
+                                                isGroup = isGroup,
+                                                isDark = isDark,
+                                                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -887,3 +916,165 @@ private fun MessageBubble(
         }
     }
 }
+
+@Composable
+fun BouncingDotsIndicator(
+    color: Color = MaterialTheme.colorScheme.primary,
+    dotSize: androidx.compose.ui.unit.Dp = 7.dp
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "bouncing_dots")
+
+    val dotOffset1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -5f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 900
+                0f at 0
+                -5f at 200 using FastOutSlowInEasing
+                0f at 400
+                0f at 900
+            },
+            repeatMode = RepeatMode.Restart,
+            initialStartOffset = StartOffset(0)
+        ),
+        label = "dot_1"
+    )
+
+    val dotOffset2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -5f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 900
+                0f at 0
+                -5f at 200 using FastOutSlowInEasing
+                0f at 400
+                0f at 900
+            },
+            repeatMode = RepeatMode.Restart,
+            initialStartOffset = StartOffset(150)
+        ),
+        label = "dot_2"
+    )
+
+    val dotOffset3 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -5f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 900
+                0f at 0
+                -5f at 200 using FastOutSlowInEasing
+                0f at 400
+                0f at 900
+            },
+            repeatMode = RepeatMode.Restart,
+            initialStartOffset = StartOffset(300)
+        ),
+        label = "dot_3"
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(y = dotOffset1.dp)
+                .size(dotSize)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Box(
+            modifier = Modifier
+                .offset(y = dotOffset2.dp)
+                .size(dotSize)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Box(
+            modifier = Modifier
+                .offset(y = dotOffset3.dp)
+                .size(dotSize)
+                .clip(CircleShape)
+                .background(color)
+        )
+    }
+}
+
+@Composable
+fun ChatTypingBubble(
+    typingUsers: List<TypingStatus>,
+    profileMap: Map<String, DirectoryProfile>,
+    isGroup: Boolean,
+    isDark: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val bubbleColor = if (isDark) ReceivedBubbleDark else ReceivedBubbleLight
+    val bubbleShape = RoundedCornerShape(
+        topStart = 18.dp,
+        topEnd = 18.dp,
+        bottomStart = 4.dp,
+        bottomEnd = 18.dp
+    )
+    val names = typingUsers.joinToString(separator = "، ") { it.displayName }
+    val firstUser = typingUsers.firstOrNull()
+    val avatar = firstUser?.let { profileMap[it.userId]?.avatarData }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("in_chat_typing_indicator"),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Surface(
+            color = bubbleColor,
+            shape = bubbleShape,
+            tonalElevation = 2.dp,
+            shadowElevation = 1.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (firstUser != null) {
+                    UserAvatar(
+                        name = firstUser.displayName,
+                        avatarBase64 = avatar,
+                        size = 28.dp
+                    )
+                }
+                Column {
+                    if (isGroup && firstUser != null) {
+                        Text(
+                            text = names,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        BouncingDotsIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            dotSize = 7.dp
+                        )
+                        Text(
+                            text = if (typingUsers.size > 1) "يكتبون الآن..." else "يكتب الآن...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
