@@ -59,10 +59,11 @@ class ResalahRepository(
             throw error
         }
 
-    suspend fun ensureUserInitialized(firebaseUser: FirebaseUser): Result<Unit> {
+    suspend fun ensureUserInitialized(firebaseUser: FirebaseUser, verifiedPhone: String? = null): Result<Unit> {
         val uid = firebaseUser.uid
         val privatePath = "users/$uid"
         val directoryPath = "directory/$uid"
+        val effectivePhone = verifiedPhone?.trim()?.take(30) ?: firebaseUser.phoneNumber?.take(30)
         return try {
             val privateRef = db.collection("users").document(uid)
             val privateSnap = privateRef.get().await()
@@ -70,12 +71,20 @@ class ResalahRepository(
                 val payload = mapOf(
                     "userId" to uid,
                     "email" to firebaseUser.email?.take(200),
+                    "phone" to effectivePhone,
                     "themeMode" to "system",
                     "chatWallpaper" to "emerald_classic",
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
                 ).filterValues { it != null }
                 privateRef.set(payload).await()
+            } else if (!effectivePhone.isNullOrBlank()) {
+                privateRef.update(
+                    mapOf(
+                        "phone" to effectivePhone,
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                ).await()
             }
 
             val dirRef = db.collection("directory").document(uid)
@@ -92,6 +101,7 @@ class ResalahRepository(
                     "userId" to uid,
                     "displayName" to fallbackName,
                     "username" to rawUsername,
+                    "phone" to effectivePhone,
                     "bio" to "متاح للتواصل عبر تطبيق رسالة",
                     "online" to true,
                     "discoverable" to true,
@@ -100,16 +110,18 @@ class ResalahRepository(
                     "lastSeen" to FieldValue.serverTimestamp(),
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
-                )
+                ).filterValues { it != null }
                 dirRef.set(dirPayload).await()
             } else {
-                dirRef.update(
-                    mapOf(
-                        "online" to true,
-                        "lastSeen" to FieldValue.serverTimestamp(),
-                        "updatedAt" to FieldValue.serverTimestamp()
-                    )
-                ).await()
+                val dirUpdates = mutableMapOf<String, Any>(
+                    "online" to true,
+                    "lastSeen" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                if (!effectivePhone.isNullOrBlank()) {
+                    dirUpdates["phone"] = effectivePhone
+                }
+                dirRef.update(dirUpdates).await()
             }
             Result.success(Unit)
         } catch (e: CancellationException) {
@@ -197,6 +209,9 @@ class ResalahRepository(
             if (!avatarData.isNullOrBlank()) {
                 require(avatarData.length <= 350_000) { "حجم الصورة كبير جداً" }
                 dirUpdates["avatarData"] = avatarData
+            }
+            if (!phone.isNullOrBlank()) {
+                dirUpdates["phone"] = phone.trim().take(30)
             }
             db.collection("directory").document(uid).update(dirUpdates).await()
 

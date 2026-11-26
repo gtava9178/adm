@@ -67,6 +67,7 @@ import com.example.data.model.ChatWallpaper
 import com.example.data.model.DirectoryProfile
 import com.example.data.model.PrivateUser
 import com.example.data.model.ThemeMode
+import com.example.data.model.YemenCarrier
 import com.example.ui.components.UserAvatar
 import com.example.ui.components.WallpaperBackground
 import com.example.util.MediaAndTimeUtils
@@ -252,15 +253,41 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .testTag("profile_bio_input")
                         )
-                        OutlinedTextField(
-                            value = phone,
-                            onValueChange = { phone = it },
-                            label = { Text("رقم الهاتف (خاص بك)") },
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("profile_phone_input")
-                        )
+                        val currentCarrier = YemenCarrier.detect(phone)
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            OutlinedTextField(
+                                value = phone,
+                                onValueChange = { phone = it },
+                                label = { Text("رقم الهاتف اليمني (+967)") },
+                                placeholder = { Text("77xxxxxxx / 73xxxxxxx / 71xxxxxxx") },
+                                singleLine = true,
+                                trailingIcon = {
+                                    if (currentCarrier != null) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = Color(currentCarrier.colorHex).copy(alpha = 0.15f),
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        ) {
+                                            Text(
+                                                text = currentCarrier.brandNameArabic,
+                                                color = Color(currentCarrier.colorHex),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("profile_phone_input")
+                            )
+                            Text(
+                                text = "الشبكات المعتمدة في اليمن: 77 (يمن موبايل)، 73 (يو)، 71 (سبأفون) 🇾🇪",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (currentCarrier != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
 
                         Button(
                             onClick = {

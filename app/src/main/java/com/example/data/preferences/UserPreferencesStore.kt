@@ -14,6 +14,7 @@ private val Context.dataStore by preferencesDataStore(name = "resalah_prefs")
 class UserPreferencesStore(private val context: Context) {
     private val themeKey = stringPreferencesKey("theme_mode")
     private val wallpaperKey = stringPreferencesKey("chat_wallpaper")
+    private val verifiedPhoneKey = stringPreferencesKey("verified_phone")
 
     val themeModeFlow: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
         ThemeMode.fromWire(prefs[themeKey])
@@ -21,6 +22,10 @@ class UserPreferencesStore(private val context: Context) {
 
     val wallpaperFlow: Flow<ChatWallpaper> = context.dataStore.data.map { prefs ->
         ChatWallpaper.fromWire(prefs[wallpaperKey])
+    }
+
+    val verifiedPhoneFlow: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[verifiedPhoneKey]
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -32,6 +37,12 @@ class UserPreferencesStore(private val context: Context) {
     suspend fun setChatWallpaper(wallpaper: ChatWallpaper) {
         context.dataStore.edit { prefs ->
             prefs[wallpaperKey] = wallpaper.wireValue
+        }
+    }
+
+    suspend fun setVerifiedPhone(phone: String) {
+        context.dataStore.edit { prefs ->
+            prefs[verifiedPhoneKey] = phone
         }
     }
 }

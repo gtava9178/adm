@@ -73,6 +73,56 @@ data class PrivateUser(
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
 
+enum class YemenCarrier(
+    val prefix: String,
+    val brandNameArabic: String,
+    val brandNameEnglish: String,
+    val colorHex: Long
+) {
+    YEMEN_MOBILE("77", "يمن موبايل", "Yemen Mobile", 0xFF0D6E5C),
+    YOU("73", "يو (YOU)", "YOU", 0xFF7C3AED),
+    SABAFON("71", "سبأفون", "Sabafon", 0xFF0284C7);
+
+    companion object {
+        fun detect(phoneDigits: String): YemenCarrier? {
+            val clean = phoneDigits.filter { it.isDigit() }
+            val normalized = when {
+                clean.startsWith("967") -> clean.removePrefix("967")
+                clean.startsWith("00967") -> clean.removePrefix("00967")
+                clean.startsWith("0") -> clean.removePrefix("0")
+                else -> clean
+            }
+            return entries.firstOrNull { normalized.startsWith(it.prefix) }
+        }
+
+        fun isValidYemenNumber(phoneDigits: String): Boolean {
+            val clean = phoneDigits.filter { it.isDigit() }
+            val normalized = when {
+                clean.startsWith("967") -> clean.removePrefix("967")
+                clean.startsWith("00967") -> clean.removePrefix("00967")
+                clean.startsWith("0") -> clean.removePrefix("0")
+                else -> clean
+            }
+            return normalized.length == 9 && (normalized.startsWith("77") || normalized.startsWith("73") || normalized.startsWith("71"))
+        }
+
+        fun formatYemen(phoneDigits: String): String {
+            val clean = phoneDigits.filter { it.isDigit() }
+            val normalized = when {
+                clean.startsWith("967") -> clean.removePrefix("967")
+                clean.startsWith("00967") -> clean.removePrefix("00967")
+                clean.startsWith("0") -> clean.removePrefix("0")
+                else -> clean
+            }
+            return if (normalized.length == 9) {
+                "${normalized.substring(0, 2)} ${normalized.substring(2, 5)} ${normalized.substring(5)}"
+            } else {
+                normalized
+            }
+        }
+    }
+}
+
 @Keep
 @IgnoreExtraProperties
 data class DirectoryProfile(
@@ -80,6 +130,7 @@ data class DirectoryProfile(
     val userId: String = "",
     val displayName: String = "",
     val username: String = "",
+    val phone: String? = null,
     val bio: String? = null,
     val avatarData: String? = null,
     val online: Boolean = false,

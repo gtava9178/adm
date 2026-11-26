@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -40,7 +41,7 @@ class MainViewModel(
     private val repository: ResalahRepository,
     private val prefsStore: UserPreferencesStore,
     val currentUserId: String,
-    firebaseUser: FirebaseUser?
+    private val firebaseUser: FirebaseUser?
 ) : ViewModel() {
 
     private val _selectedChatId = MutableStateFlow<String?>(null)
@@ -60,7 +61,17 @@ class MainViewModel(
     init {
         if (firebaseUser != null) {
             viewModelScope.launch {
-                repository.ensureUserInitialized(firebaseUser)
+                val storedPhone = prefsStore.verifiedPhoneFlow.firstOrNull()
+                repository.ensureUserInitialized(firebaseUser, storedPhone)
+            }
+        }
+    }
+
+    fun setVerifiedPhone(phone: String) {
+        viewModelScope.launch {
+            prefsStore.setVerifiedPhone(phone)
+            firebaseUser?.let { user ->
+                repository.ensureUserInitialized(user, phone)
             }
         }
     }

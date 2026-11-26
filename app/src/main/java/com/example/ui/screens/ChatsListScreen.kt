@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import com.example.data.model.ChatThread
 import com.example.data.model.DirectoryProfile
 import com.example.data.model.UiState
+import com.example.data.model.YemenCarrier
 import com.example.ui.components.EmptyChatsPlaceholder
 import com.example.ui.components.MessageStatusTicks
 import com.example.ui.components.UserAvatar
@@ -153,7 +154,7 @@ fun ChatsListScreen(
                     onValueChange = onSearchChange,
                     placeholder = {
                         Text(
-                            text = "ابحث في المحادثات أو @اسم المستخدم...",
+                            text = "ابحث بالاسم أو رقم الهاتف اليمني (77 / 73 / 71)...",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     },
@@ -204,6 +205,7 @@ fun ChatsListScreen(
                 }
                 is UiState.Success -> {
                     val query = searchQuery.trim().lowercase()
+                    val digitsQuery = query.filter { it.isDigit() }
                     val filteredChats = remember(chatsState.data, query, profileMap) {
                         if (query.isEmpty()) chatsState.data
                         else chatsState.data.filter { chat ->
@@ -213,11 +215,13 @@ fun ChatsListScreen(
                         }
                     }
 
-                    val matchingContacts = remember(otherContacts, query) {
+                    val matchingContacts = remember(otherContacts, query, digitsQuery) {
                         if (query.isEmpty()) emptyList()
                         else otherContacts.filter {
                             it.displayName.lowercase().contains(query) ||
-                                it.username.lowercase().contains(query)
+                                it.username.lowercase().contains(query) ||
+                                (digitsQuery.isNotEmpty() && it.phone?.filter { ch -> ch.isDigit() }?.contains(digitsQuery) == true) ||
+                                (it.phone != null && it.phone.lowercase().contains(query))
                         }
                     }
 
@@ -468,6 +472,7 @@ private fun ContactDirectoryRow(
     profile: DirectoryProfile,
     onClick: () -> Unit
 ) {
+    val carrier = profile.phone?.let { YemenCarrier.detect(it) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -484,13 +489,37 @@ private fun ContactDirectoryRow(
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = profile.displayName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (carrier != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(carrier.colorHex).copy(alpha = 0.12f)
+                    ) {
+                        Text(
+                            text = carrier.brandNameArabic,
+                            color = Color(carrier.colorHex),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+            val phoneSubtitle = if (!profile.phone.isNullOrBlank()) {
+                val formatted = YemenCarrier.formatYemen(profile.phone)
+                "🇾🇪 $formatted • @${profile.username}"
+            } else {
+                "@${profile.username} • ${profile.bio ?: "متاح"}"
+            }
             Text(
-                text = profile.displayName,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "@${profile.username} • ${profile.bio ?: "متاح"}",
+                text = phoneSubtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

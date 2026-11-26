@@ -23,6 +23,7 @@
         "userId": { "type": "string" },
         "displayName": { "type": "string" },
         "username": { "type": "string" },
+        "phone": { "type": "string", "description": "Verified Yemeni phone number" },
         "bio": { "type": "string" },
         "avatarData": { "type": "string" },
         "online": { "type": "boolean" },
